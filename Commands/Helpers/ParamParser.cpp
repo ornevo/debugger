@@ -9,7 +9,7 @@
 
 
 ParamParser::ParamParser(const vector<PARAM_TYPES> &structure, const string &command_name)
-        : structure(structure), command_name(command_name) {}
+        : structure(structure), command_name(command_name), enums() {}
 
 bool ParamParser::load(const vector<string> &line) {
     this->current_line = line;
@@ -27,12 +27,22 @@ bool ParamParser::load(const vector<string> &line) {
         return false;
     }
 
+    int enums_count = 0; // Number of enums seen so far
     for (int i = 0; i < this->structure.size(); ++i)
     {
         PARAM_TYPES type = this->structure[i];
         const string& param = line[i+1];
         switch (type)
         {
+            case PARAM_TYPES::ENUM:
+                if(!this->matchEnum(param, enums_count))
+                {
+                    cout << "Argument number " << (i+1) << " is not in the argument's allowed values." << endl;
+                    printUsage();
+                    return false;
+                }
+                ++enums_count;
+                break;
             case PARAM_TYPES::NUMBER:
                 if(!ParamParser::matchNumber(param))
                 {
@@ -44,7 +54,7 @@ bool ParamParser::load(const vector<string> &line) {
             case PARAM_TYPES::ADDRESS:
                 if(!ParamParser::matchAddress(param))
                 {
-                    cout << "Bad address at argument number " << i+1 << endl;
+                    cout << "Bad address at argument number " << i+1 << ". Must be a hex value starting with \"0x\"." << endl;
                     printUsage();
                     return false;
                 }
@@ -65,38 +75,39 @@ bool ParamParser::matchNumber(const string &val) {
 
 bool ParamParser::matchAddress(const string &val) {
     // Try to convert hex number
-    try
-    {
-        auto add = boost::lexical_cast<uint64_t>(val);
-    }
-    catch(boost::bad_lexical_cast &)
-    {
+    if(val.length() < 3 || val.substr(0, 2) != "0x")
         return false;
-    }
+
+    for(auto c : val.substr(2))
+        if(!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+            return false;
 
     return true;
 }
 
 void ParamParser::printUsage() {
     cout << "Usage: " << this->command_name;
+    int enum_i = 0;
     for(auto type : this->structure)
         switch (type)
         {
             case PARAM_TYPES::STRING:
                 cout << " <STRING>";
                 break;
-            case PARAM_TYPES ::NUMBER:
+            case PARAM_TYPES::ENUM:
+                cout << enumUsageString(getEnum(enum_i++));
+                break;
+            case PARAM_TYPES::NUMBER:
                 cout << " <NUMBER>";
                 break;
-            case PARAM_TYPES ::ADDRESS:
+            case PARAM_TYPES::ADDRESS:
                 cout << " <ADDRESS>";
                 break;
         }
     cout << endl;
 }
 
-template <typename RetType>
-unique_ptr<void> ParamParser::operator[](int index) {
+boost::any ParamParser::operator[](int index) {
     if(index < 0 || index > this->structure.size())
         throw out_of_range("Index " + to_string(index) + " is out parameters bounds.");
 
@@ -104,10 +115,32 @@ unique_ptr<void> ParamParser::operator[](int index) {
     switch(this->structure[index])
     {
         case PARAM_TYPES::NUMBER:
-            return unique_ptr<RetType>(new int32_t(stoi(param)));
-        case PARAM_TYPES ::ADDRESS:
-            return unique_ptr<RetType>(new uint64_t(boost::lexical_cast<int64_t>(param)));
+            return stoi(param);
+        case PARAM_TYPES::ADDRESS:
+            return static_cast<int64_t>(strtoul(param.c_str(), nullptr, 16));
         default:
-            return unique_ptr<RetType>(new string(param));
+            return string(param);
     }
+}
+
+void ParamParser::defineEnum(const vector<string> &allowedValues) {
+    this->enums.push_back(move(allowedValues));
+}
+
+bool ParamParser::matchEnum(const string &param, int enum_i) {
+    auto const& allowed_vals = this->getEnum(enum_i);
+    return find(allowed_vals.begin(), allowed_vals.end(), param) != allowed_vals.end();
+}
+
+const vector<string> &ParamParser::getEnum(int enum_i) {
+    if(enum_i >= this->enums.size())
+        throw range_error("More enum parameters than enums defined.");
+    return this->enums[enum_i];
+}
+
+const string ParamParser::enumUsageString(const vector<string> &enum_vec) {
+    string to_print(" <");
+    for(auto s : enum_vec)
+        to_print.append(s + "|");
+    return to_print.substr(0, to_print.length()-1) + ">";
 }

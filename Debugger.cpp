@@ -8,12 +8,16 @@
 #include "IO.h"
 #include "Commands/ExitCommand.h"
 #include "Commands/ContinueCommand.h"
+#include "Commands/BreakCommand.h"
+#include "Commands/BreakListCommand.h"
 
 
 bool Debugger::current_command_found = false;
 
 const vector<Command*> Debugger::commands({
   new ContinueCommand,
+  new BreakCommand,
+  new BreakListCommand
 });
 
 void Debugger::run()
