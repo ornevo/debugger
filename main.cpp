@@ -18,7 +18,7 @@ int main(int argc, char ** argv) {
 
     const char * prog_name = argv[1];
 
-    int pid = fork();
+    auto pid = fork();
     if(pid == 0)  // child process
     {
         // Request, pid, addr, data
@@ -29,9 +29,10 @@ int main(int argc, char ** argv) {
     {
         IO::init();
 
-        Debugger debugger(prog_name, pid);
-        debugger.run();
+        Debugger::get(prog_name, pid);
+        Debugger::get().run();
 
+        Debugger::get().killChild();
         IO::destruct();
     }
 }

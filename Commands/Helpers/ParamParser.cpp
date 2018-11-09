@@ -5,6 +5,8 @@
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 #include "ParamParser.h"
+#include "../../Debugger.h"
+
 
 ParamParser::ParamParser(const vector<PARAM_TYPES> &structure, const string &command_name)
         : structure(structure), command_name(command_name) {}
@@ -14,6 +16,8 @@ bool ParamParser::load(const vector<string> &line) {
     // Base cases, where nothing should get printed
     if(line.empty()) return false;
     if(line[0] != this->command_name) return false;
+
+    Debugger::notifyMatchedCommand();
 
     // If good command name, but bad number of args
     if(line.size() - 1 != this->structure.size())

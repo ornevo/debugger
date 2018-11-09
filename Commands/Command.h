@@ -17,7 +17,7 @@ public:
     Command(const vector<PARAM_TYPES>& params_template, const string& command_name);
     virtual bool doesMatch(const vector<string>& line);
     // Return if success or not.
-    virtual bool execute(const vector<string>& line) = 0;
+    virtual bool execute() = 0;
 
 protected:
     string command_name;

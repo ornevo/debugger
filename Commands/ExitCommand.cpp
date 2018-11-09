@@ -5,4 +5,4 @@
 #include "ExitCommand.h"
 
 
-ExitCommand::ExitCommand() : Command(vector<PARAM_TYPES>({PARAM_TYPES::NUMBER}), "exit") {}
+ExitCommand::ExitCommand() : Command(vector<PARAM_TYPES>({}), "exit") {}

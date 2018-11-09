@@ -12,7 +12,7 @@ class ExitCommand : public Command
 {
 public:
     ExitCommand();
-    virtual bool execute(const vector<string>& line) {};
+    virtual bool execute() {};
 };
 
 
